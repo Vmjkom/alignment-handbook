@@ -14,15 +14,14 @@
 # limitations under the License.
 import os
 from typing import List, Literal, Optional
-
+from accelerate import logging
 from datasets import DatasetDict, concatenate_datasets, load_dataset, load_from_disk
 from datasets.builder import DatasetGenerationError
 
 from .configs import DataArguments
-
+logger = logging.get_logger(__name__,log_level="INFO")
 
 DEFAULT_CHAT_TEMPLATE = "{% for message in messages %}\n{% if message['role'] == 'user' %}\n{{ '<|user|>\n' + message['content'] + eos_token }}\n{% elif message['role'] == 'system' %}\n{{ '<|system|>\n' + message['content'] + eos_token }}\n{% elif message['role'] == 'assistant' %}\n{{ '<|assistant|>\n'  + message['content'] + eos_token }}\n{% endif %}\n{% if loop.last and add_generation_prompt %}\n{{ '<|assistant|>' }}\n{% endif %}\n{% endfor %}"
-
 
 def maybe_insert_system_message(messages, tokenizer):
     if messages[0]["role"] == "system":
@@ -90,6 +89,7 @@ def apply_chat_template(
         raise ValueError(
             f"Task {task} not supported, please ensure that the provided task is one of {['sft', 'generation', 'rm', 'dpo']}"
         )
+    #print(f"Example from data.py {example}")
     return example
 
 
@@ -160,7 +160,7 @@ def mix_datasets(dataset_mixer: dict, splits: Optional[List[str]] = None, shuffl
             except DatasetGenerationError:
                 # If not, check local dataset
                 dataset = load_from_disk(os.path.join(ds, split))
-
+            logger.warning(f"Dataset {ds} has this amount of rows {dataset.num_rows}")
             if "train" in split:
                 raw_train_datasets.append(dataset)
             elif "test" in split:

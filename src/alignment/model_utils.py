@@ -91,7 +91,6 @@ def get_tokenizer(model_args: ModelArguments, data_args: DataArguments) -> PreTr
 def get_peft_config(model_args: ModelArguments) -> PeftConfig | None:
     if model_args.use_peft is False:
         return None
-
     peft_config = LoraConfig(
         r=model_args.lora_r,
         lora_alpha=model_args.lora_alpha,
@@ -117,6 +116,6 @@ def is_adapter_model(model_name_or_path: str, revision: str = "main") -> bool:
 
 def get_checkpoint(training_args: SFTConfig | DPOConfig) -> Path | None:
     last_checkpoint = None
-    if os.path.isdir(training_args.output_dir):
+    if os.path.isdir(training_args.output_dir) and "\debug" not in training_args.output_dir:
         last_checkpoint = get_last_checkpoint(training_args.output_dir)
     return last_checkpoint

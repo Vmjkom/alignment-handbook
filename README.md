@@ -6,6 +6,23 @@
     🤗 <a href="https://huggingface.co/collections/alignment-handbook/handbook-v01-models-and-datasets-654e424d22e6880da5ebc015" target="_blank">Models & Datasets</a> | 📃 <a href="https://arxiv.org/abs/2310.16944" target="_blank">Technical Report</a>
 </p>
 
+# Lumi specific instructions
+
+[`slurm_scripts`](./slurm_scripts/) For setting up your python virtual enviroment and launching slurm jobs.
+[`recipes/poro`](./scripts/poro/) Templates for poro finetuning. The arguments resemble that of HF trainingarguments.
+
+### Useful links
+
+Great article on finetuning with trl and specifically the SftTrainer.
+
+https://wandb.ai/capecape/alpaca_ft/reports/How-to-Fine-tune-an-LLM-Part-3-The-Hugging-Face-Trainer--Vmlldzo1OTEyNjMy
+
+### TODO
+
+-Full model training with FSDP and Poro
+
+## Original README below
+
 # The Alignment Handbook
 
 Robust recipes to align language models with human and AI preferences.
