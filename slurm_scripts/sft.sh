@@ -3,7 +3,7 @@
 #SBATCH --account=project_462000319
 #SBATCH --partition=small-g
 #SBATCH --cpus-per-task=56
-#SBATCH --nodes=4
+#SBATCH --nodes=2
 #SBATCH --gpus-per-node=8
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=480G
@@ -33,6 +33,7 @@ export MASTER_PORT=$(expr 10000 + $(echo -n $SLURM_JOBID | tail -c 4))
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
 export LOCAL_RANK=$SLURM_LOCALID
+#export RANK=$SLURM_PROCID
 export WORLD_SIZE=$((SLURM_GPUS_ON_NODE*SLURM_NNODES))
 
 
@@ -56,6 +57,7 @@ CONFIG_FILE=recipes/poro/sft/config_full_packing.yaml
 
 echo "JOBNAME" $SLURM_JOB_NAME
 echo "CONFIG" $CONFIG_FILE
+pwd -P
 
 export CMD=" \
     scripts/run_sft.py $CONFIG_FILE
@@ -71,7 +73,7 @@ export ACC_LAUNCHER="singularity_wrapper exec accelerate launch \
     --main_process_ip $MASTER_ADDR \
     --main_process_port $MASTER_PORT \
     --machine_rank \$SLURM_PROCID \
-    --role \$(hostname -s|tr -dc '0-9'): \ 
+    --role \$(hostname -s|tr -dc '0-9'): \
     --tee 3 \
     "
 
