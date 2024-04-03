@@ -62,13 +62,16 @@ def get_quantization_config(model_args: ModelArguments) -> BitsAndBytesConfig | 
     return quantization_config
 
 
-def get_tokenizer(model_args: ModelArguments, data_args: DataArguments) -> PreTrainedTokenizer:
+def get_tokenizer(
+    model_args: ModelArguments, data_args: DataArguments, auto_set_chat_template: bool = True
+) -> PreTrainedTokenizer:
     """Get the tokenizer for the model."""
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.model_name_or_path
         if model_args.tokenizer_name_or_path is None
         else model_args.tokenizer_name_or_path,
         revision=model_args.model_revision,
+        trust_remote_code=model_args.trust_remote_code,
     )
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
@@ -82,7 +85,7 @@ def get_tokenizer(model_args: ModelArguments, data_args: DataArguments) -> PreTr
 
     if data_args.chat_template is not None:
         tokenizer.chat_template = data_args.chat_template
-    elif tokenizer.chat_template is None and tokenizer.default_chat_template is None:
+    elif auto_set_chat_template and tokenizer.chat_template is None and tokenizer.default_chat_template is None:
         tokenizer.chat_template = DEFAULT_CHAT_TEMPLATE
 
     return tokenizer

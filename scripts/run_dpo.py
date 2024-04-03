@@ -27,6 +27,7 @@ from alignment import (
     H4ArgumentParser,
     ModelArguments,
     apply_chat_template,
+    decontaminate_humaneval,
     get_checkpoint,
     get_datasets,
     get_kbit_device_map,
@@ -76,7 +77,12 @@ def main():
     ###############
     # Load datasets
     ###############
-    raw_datasets = get_datasets(data_args, splits=data_args.dataset_splits)
+    raw_datasets = get_datasets(
+        data_args,
+        splits=data_args.dataset_splits,
+        configs=data_args.dataset_configs,
+        columns_to_keep=["messages", "chosen", "rejected", "prompt", "completion", "label"],
+    )
     logger.info(
         f"Training on the following splits: {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
     )
@@ -101,6 +107,23 @@ def main():
         num_proc=data_args.preprocessing_num_workers,
         remove_columns=column_names,
         desc="Formatting comparisons with prompt template",
+    )
+
+    ##########################
+    # Decontaminate benchmarks
+    ##########################
+    num_raw_train_samples = len(raw_datasets["train"])
+    raw_datasets = raw_datasets.filter(
+        decontaminate_humaneval,
+        fn_kwargs={"text_column": "text_chosen"},
+        batched=True,
+        batch_size=10_000,
+        num_proc=1,
+        desc="Decontaminating HumanEval samples",
+    )
+    num_filtered_train_samples = num_raw_train_samples - len(raw_datasets["train"])
+    logger.info(
+        f"Decontaminated {num_filtered_train_samples} ({num_filtered_train_samples/num_raw_train_samples * 100:.2f}%) samples from the training set."
     )
 
     # Replace column names with what TRL needs, text_chosen -> chosen and text_rejected -> rejected
