@@ -186,7 +186,6 @@ def mix_datasets(
             except DatasetGenerationError:
                 # If not, check local dataset
                 dataset = load_from_disk(os.path.join(ds, split))
-            logger.warning(f"Dataset {ds} has this amount of rows {dataset.num_rows}")
             if "train" in split:
                 raw_train_datasets.append(dataset)
             elif "test" in split:
