@@ -251,6 +251,16 @@ class SFTConfig(transformers.TrainingArguments):
     )
     optim: Optional[str] = field(default="adamw_torch")
 
+    neftune_noise_alpha: Optional[float] = field(
+        default=None,
+        metadata={"help": {"If not `None`, this will activate NEFTune noise embeddings. This has been proven to drastically improve model performances for instruction \
+            fine-tuning. Check out the original paper here: https://arxiv.org/abs/2310.05914 and the original code here: https://github.com/neelsjain/NEFTune"}}
+    )
+    packing: bool = field(
+        default=True,
+        metadata={"help": {"Instead of padding SFTTrainer can use packing to concatanate multiple short examples together into the same sequence.\
+                           This is to increase to training efficiency."}}
+    )
 
 @dataclass
 class DPOConfig(transformers.TrainingArguments):
