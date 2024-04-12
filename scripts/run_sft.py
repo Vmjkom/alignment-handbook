@@ -25,9 +25,9 @@ import torch
 import transformers
 from transformers import AutoModelForCausalLM, set_seed
 import warnings
-
+#print(sys.path)
 # Suppress all user warnings
-#warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', category=UserWarning)
 sys.path.append(str(os.environ['PWD'])) #
 from src.alignment import (
     DataArguments,
@@ -44,34 +44,16 @@ from src.alignment import (
     get_tokenizer,
 )
 from trl import SFTTrainer, setup_chat_format
-#from datasets import disable_caching
-#disable_caching() #
+
 from accelerate import logging #Accelerate logger handles multiprocessing, printing message only on 1 rank by default
-#import logging
-from accelerate import PartialState
 logger = logging.get_logger(__name__,log_level="INFO")
-#logger = logging.getLogger(__name__)
+
 def main():
     parser = H4ArgumentParser((ModelArguments, DataArguments, SFTConfig))
     model_args, data_args, training_args = parser.parse()
 
     # Set seed for reproducibility
     set_seed(training_args.seed)
-
-    ###############
-    # Setup logging
-    ###############
-    #logging.basicConfig(
-    #    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    #    datefmt="%Y-%m-%d %H:%M:%S",
-    #    handlers=[logging.StreamHandler(sys.stdout)],
-    #)                                                #Accelerate logging requires this   
-    #log_level = str(training_args.get_process_log_level()).upper()
-    #logger.setLevel(log_level)
-    #datasets.utils.logging.set_verbosity(log_level)
-    #transformers.utils.logging.set_verbosity(log_level)
-    #transformers.utils.logging.enable_default_handler()
-    #transformers.utils.logging.enable_explicit_format()
 
     # Log on each process a small summary
     logger.warning(
@@ -120,7 +102,6 @@ def main():
     train_dataset = raw_datasets["train"]
     eval_dataset = raw_datasets["test"]
 
-    #with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
     for index in random.sample(range(len(raw_datasets["train"])), 3):
         logger.warning(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
 
@@ -157,13 +138,14 @@ def main():
         dataset_text_field="text",
         max_seq_length=training_args.max_seq_length,
         tokenizer=tokenizer,
-        packing=True,
+        packing=training_args.packing,
         peft_config=get_peft_config(model_args),
         dataset_kwargs={
             "add_special_tokens": False,  # We template with special tokens
             "append_concat_token": False, # No need to add additional separator token
         }
     )
+    trainer.accelerator.wait_for_everyone()
     logger.warning(f"Trainer model: {trainer.model}")
     ###############
     # Training loop
