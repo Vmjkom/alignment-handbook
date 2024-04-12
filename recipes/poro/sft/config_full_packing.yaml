@@ -26,28 +26,27 @@ gradient_accumulation_steps: 2
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-learning_rate: 1.0e-5
+learning_rate: 2.0e-05
 log_level: info
 log_on_each_node: false
-logging_steps: 10
+logging_steps: 5
 evaluation_strategy: steps
-eval_steps: 500
+eval_steps: 250
 logging_strategy: steps
-lr_scheduler_type: constant_with_warmup
-max_grad_norm: 2.0
+lr_scheduler_type: cosine
 max_seq_length: 2048
 max_steps: -1
 num_train_epochs: 3
-output_dir: /scratch/project_462000319/villekom/models/alignment_handbook/sft/poro_mixed_full
+output_dir: /scratch/project_462000241/villekom/models/alignment_handbook/sft/poro_mixed_full_packing_noglaive
 overwrite_output_dir: false
-per_device_eval_batch_size: 4
+per_device_eval_batch_size: 2
 per_device_train_batch_size: 2
 push_to_hub: false
 report_to:
 - tensorboard
 save_strategy: "steps"
 save_steps: 100
-save_total_limit: 1
+save_total_limit: 2
 seed: 42
 warmup_ratio: 0.1
-packing: false
+packing: true
