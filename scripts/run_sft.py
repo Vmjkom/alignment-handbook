@@ -101,49 +101,63 @@ def main():
     ################
     tokenizer = get_tokenizer(model_args, data_args)
 
-    #####################
-    # Apply chat template
-    #####################
-    
-    with training_args.main_process_first():
-        raw_datasets = raw_datasets.map(
-                apply_chat_template,
-                fn_kwargs={
-                    "tokenizer": tokenizer,
-                    "task": "sft",
-                    "auto_insert_empty_system_msg": data_args.auto_insert_empty_system_msg,
-                },
-                num_proc=data_args.preprocessing_num_workers,
-                remove_columns=column_names,
-                desc="Applying chat template",
-            )
-    train_dataset = raw_datasets["train"]
-    eval_dataset = raw_datasets["test"]
-
-    #with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
-    for index in random.sample(range(len(raw_datasets["train"])), 3):
-        logger.warning(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
-
     #######################
     # Load pretrained model
     #######################
-    logger.warning("*** Load pretrained model ***")
+    logger.info("*** Load pretrained model ***")
     torch_dtype = (
         model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
     )
-    # quantization_config = get_quantization_config(model_args)
+    quantization_config = get_quantization_config(model_args)
 
     model_kwargs = dict(
         revision=model_args.model_revision,
         trust_remote_code=model_args.trust_remote_code,
-        # use_flash_attention_2=model_args.use_flash_attention_2,
+        use_flash_attention_2=model_args.use_flash_attention_2,
         torch_dtype=torch_dtype,
         use_cache=False if training_args.gradient_checkpointing else True,
-        # device_map=get_kbit_device_map() if quantization_config is not None else None,
-        # quantization_config=quantization_config,
+        device_map=get_kbit_device_map() if quantization_config is not None else None,
+        quantization_config=quantization_config,
     )
 
+    model = model_args.model_name_or_path
+    # For ChatML we need to add special tokens and resize the embedding layer
+    if "<|im_start|>" in tokenizer.chat_template:
+        model = AutoModelForCausalLM.from_pretrained(model_args.model_name_or_path, **model_kwargs)
+        model, tokenizer = setup_chat_format(model, tokenizer)
+        model_kwargs = None
 
+    #####################
+    # Apply chat template
+    #####################
+    raw_datasets = raw_datasets.map(
+        apply_chat_template,
+        fn_kwargs={
+            "tokenizer": tokenizer,
+            "task": "sft",
+            "auto_insert_empty_system_msg": data_args.auto_insert_empty_system_msg,
+        },
+        num_proc=data_args.preprocessing_num_workers,
+        remove_columns=column_names,
+        desc="Applying chat template",
+    )
+
+    ##########################
+    # Decontaminate benchmarks
+    ##########################
+    num_raw_train_samples = len(raw_datasets["train"])
+    raw_datasets = raw_datasets.filter(decontaminate_humaneval, batched=True, batch_size=10_000, num_proc=1)
+    num_filtered_train_samples = num_raw_train_samples - len(raw_datasets["train"])
+    logger.info(
+        f"Decontaminated {num_filtered_train_samples} ({num_filtered_train_samples/num_raw_train_samples * 100:.2f}%) samples from the training set."
+    )
+
+    train_dataset = raw_datasets["train"]
+    eval_dataset = raw_datasets["test"]
+
+    with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
+        for index in random.sample(range(len(raw_datasets["train"])), 3):
+            logger.info(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
 
     ########################
     # Initialize the Trainer
