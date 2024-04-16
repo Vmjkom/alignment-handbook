@@ -114,10 +114,6 @@ def main():
         quantization_config=quantization_config,
     )
 
-    # For ChatML we need to add special tokens and resize the embedding layer
-    if "<|im_start|>" in tokenizer.chat_template:
-        model, tokenizer = setup_chat_format(model, tokenizer)
-
     #####################
     # Apply chat template
     #####################

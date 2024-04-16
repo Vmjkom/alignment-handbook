@@ -38,9 +38,9 @@ from src.alignment import (
     decontaminate_humaneval,
     get_checkpoint,
     get_datasets,
-    # get_kbit_device_map,
+    get_kbit_device_map,
     get_peft_config,
-    # get_quantization_config,
+    get_quantization_config,
     get_tokenizer,
 )
 from trl import SFTTrainer, setup_chat_format
@@ -100,13 +100,6 @@ def main():
         device_map=get_kbit_device_map() if quantization_config is not None else None,
         quantization_config=quantization_config,
     )
-
-    model = model_args.model_name_or_path
-    # For ChatML we need to add special tokens and resize the embedding layer
-    if "<|im_start|>" in tokenizer.chat_template:
-        model = AutoModelForCausalLM.from_pretrained(model_args.model_name_or_path, **model_kwargs)
-        model, tokenizer = setup_chat_format(model, tokenizer)
-        model_kwargs = None
 
     #####################
     # Apply chat template
