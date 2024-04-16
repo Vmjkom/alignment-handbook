@@ -44,34 +44,15 @@ from src.alignment import (
     get_tokenizer,
 )
 from trl import SFTTrainer, setup_chat_format
-#from datasets import disable_caching
-#disable_caching() #
 from accelerate import logging #Accelerate logger handles multiprocessing, printing message only on 1 rank by default
-#import logging
 from accelerate import PartialState
 logger = logging.get_logger(__name__,log_level="INFO")
-#logger = logging.getLogger(__name__)
 def main():
     parser = H4ArgumentParser((ModelArguments, DataArguments, SFTConfig))
     model_args, data_args, training_args = parser.parse()
 
     # Set seed for reproducibility
     set_seed(training_args.seed)
-
-    ###############
-    # Setup logging
-    ###############
-    #logging.basicConfig(
-    #    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-    #    datefmt="%Y-%m-%d %H:%M:%S",
-    #    handlers=[logging.StreamHandler(sys.stdout)],
-    #)                                                #Accelerate logging requires this   
-    #log_level = str(training_args.get_process_log_level()).upper()
-    #logger.setLevel(log_level)
-    #datasets.utils.logging.set_verbosity(log_level)
-    #transformers.utils.logging.set_verbosity(log_level)
-    #transformers.utils.logging.enable_default_handler()
-    #transformers.utils.logging.enable_explicit_format()
 
     # Log on each process a small summary
     logger.warning(
