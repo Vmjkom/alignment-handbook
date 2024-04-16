@@ -25,9 +25,10 @@ import torch
 import transformers
 from transformers import AutoModelForCausalLM, set_seed
 import warnings
-
+#print(sys.path)
 # Suppress all user warnings
-#warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings('ignore', category=UserWarning)
+#Add pwd to path in order for relative imports to work
 sys.path.append(str(os.environ['PWD'])) #
 from src.alignment import (
     DataArguments,
@@ -145,13 +146,14 @@ def main():
         dataset_text_field="text",
         max_seq_length=training_args.max_seq_length,
         tokenizer=tokenizer,
-        packing=True,
+        packing=training_args.packing,
         peft_config=get_peft_config(model_args),
         dataset_kwargs={
             "add_special_tokens": False,  # We template with special tokens
             "append_concat_token": False, # No need to add additional separator token
         }
     )
+    trainer.accelerator.wait_for_everyone()
     logger.warning(f"Trainer model: {trainer.model}")
     ###############
     # Training loop

@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=sft_poro_full
+#SBATCH --job-name=sft_poro_lora
 #SBATCH --account=project_462000319
 #SBATCH --partition=small-g
 #SBATCH --cpus-per-task=56
-#SBATCH --nodes=2
+#SBATCH --nodes=4
 #SBATCH --gpus-per-node=8
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=480G
 #SBATCH --exclusive
-#SBATCH -t 24:00:00
+#SBATCH -t 14:00:00
 #SBATCH -o logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 
@@ -33,7 +33,6 @@ export MASTER_PORT=$(expr 10000 + $(echo -n $SLURM_JOBID | tail -c 4))
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
 export LOCAL_RANK=$SLURM_LOCALID
-#export RANK=$SLURM_PROCID
 export WORLD_SIZE=$((SLURM_GPUS_ON_NODE*SLURM_NNODES))
 
 
@@ -47,17 +46,16 @@ export WORLD_SIZE=$((SLURM_GPUS_ON_NODE*SLURM_NNODES))
 #export TRANSFORMERS_NO_ADVISORY_WARNINGS=1
 #export ACCELERATE_LOG_LEVEL=DEBUG
 export OMP_NUM_THREADS=1 #This could be increased
-export TOKENIZERS_PARALLELISM=false #Removes error involved with the FastTokenizer and rust/python parallelism.
+export TOKENIZERS_PARALLELISM=false #Removes error involved with the FastTokenizer and rust/python parallelism. 
                                     #See more:https://stackoverflow.com/questions/62691279/how-to-disable-tokenizers-parallelism-true-false-warning/72926996#72926996
 
 #Config for the distributed training with accelerate
 ACCELERATE_CONFIG_FILE=recipes/accelerate_configs/deepspeed_zero3.yaml
 #Arguments for training
-CONFIG_FILE=recipes/poro/sft/config_full.yaml
+CONFIG_FILE=recipes/poro/sft/config_lora.yaml
 
 echo "JOBNAME" $SLURM_JOB_NAME
 echo "CONFIG" $CONFIG_FILE
-pwd -P
 
 export CMD=" \
     scripts/run_sft.py $CONFIG_FILE

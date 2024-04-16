@@ -166,3 +166,5 @@ wandb/
 #logs
 /logs
 core
+slurm_scripts/sft_debug.sh
+recipes/poro/sft/debug.yaml
