@@ -119,6 +119,6 @@ def is_adapter_model(model_name_or_path: str, revision: str = "main") -> bool:
 
 def get_checkpoint(training_args: SFTConfig | DPOConfig) -> Path | None:
     last_checkpoint = None
-    if os.path.isdir(training_args.output_dir) and "\debug" not in training_args.output_dir:
+    if os.path.isdir(training_args.output_dir) and "debug" not in training_args.output_dir:
         last_checkpoint = get_last_checkpoint(training_args.output_dir)
     return last_checkpoint

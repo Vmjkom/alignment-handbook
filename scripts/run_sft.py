@@ -23,9 +23,13 @@ import os
 import datasets
 import torch
 import transformers
-from transformers import AutoModelForCausalLM, set_seed
 import warnings
-#print(sys.path)
+from transformers import (
+    AutoModelForCausalLM, 
+    set_seed,
+    DataCollator
+    )
+
 # Suppress all user warnings
 warnings.filterwarnings('ignore', category=UserWarning)
 sys.path.append(str(os.environ['PWD'])) #
@@ -38,12 +42,16 @@ from src.alignment import (
     decontaminate_humaneval,
     get_checkpoint,
     get_datasets,
-    # get_kbit_device_map,
+    get_kbit_device_map,
     get_peft_config,
-    # get_quantization_config,
+    get_quantization_config,
     get_tokenizer,
 )
-from trl import SFTTrainer, setup_chat_format
+from trl import (
+    SFTTrainer, 
+    setup_chat_format,
+    DataCollatorForCompletionOnlyLM
+)
 
 from accelerate import logging #Accelerate logger handles multiprocessing, printing message only on 1 rank by default
 logger = logging.get_logger(__name__,log_level="INFO")
@@ -83,10 +91,35 @@ def main():
     ################
     tokenizer = get_tokenizer(model_args, data_args)
 
+    #######################
+    # Load pretrained model
+    #######################
+    logger.info("*** Load pretrained model ***")
+    torch_dtype = (
+        model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
+    )
+    quantization_config = get_quantization_config(model_args)
+
+    model_kwargs = dict(
+        revision=model_args.model_revision,
+        trust_remote_code=model_args.trust_remote_code,
+        use_flash_attention_2=model_args.use_flash_attention_2,
+        torch_dtype=torch_dtype,
+        use_cache=False if training_args.gradient_checkpointing else True,
+        device_map=get_kbit_device_map() if quantization_config is not None else None,
+        quantization_config=quantization_config,
+    )
+
+    model = model_args.model_name_or_path
+    #For ChatML we need to add special tokens and resize the embedding layer
+    if "<|im_start|>" in tokenizer.chat_template and "<|im_start|>" not in tokenizer.additional_special_tokens:
+        model = AutoModelForCausalLM.from_pretrained(model_args.model_name_or_path, **model_kwargs)
+        model, tokenizer = setup_chat_format(model, tokenizer)
+        model_kwargs = None
+
     #####################
     # Apply chat template
     #####################
-    
     with training_args.main_process_first():
         raw_datasets = raw_datasets.map(
                 apply_chat_template,
@@ -99,38 +132,36 @@ def main():
                 remove_columns=column_names,
                 desc="Applying chat template",
             )
+    
+    ##########################
+    # Decontaminate benchmarks
+    ##########################
+    #with training_args.main_process_first():
+    #    num_raw_train_samples = len(raw_datasets["train"])
+    #    raw_datasets = raw_datasets.filter(decontaminate_humaneval, batched=True, batch_size=10_000, num_proc=1)
+    #    num_filtered_train_samples = num_raw_train_samples - len(raw_datasets["train"])
+    #logger.info(
+    #    f"Decontaminated {num_filtered_train_samples} ({num_filtered_train_samples/num_raw_train_samples * 100:.2f}%) samples from the training set."
+    #)
+
     train_dataset = raw_datasets["train"]
     eval_dataset = raw_datasets["test"]
 
     for index in random.sample(range(len(raw_datasets["train"])), 3):
-        logger.warning(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
+        logger.info(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
 
-    #######################
-    # Load pretrained model
-    #######################
-    logger.warning("*** Load pretrained model ***")
-    torch_dtype = (
-        model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
-    )
-    # quantization_config = get_quantization_config(model_args)
-
-    model_kwargs = dict(
-        revision=model_args.model_revision,
-        trust_remote_code=model_args.trust_remote_code,
-        # use_flash_attention_2=model_args.use_flash_attention_2,
-        torch_dtype=torch_dtype,
-        use_cache=False if training_args.gradient_checkpointing else True,
-        # device_map=get_kbit_device_map() if quantization_config is not None else None,
-        # quantization_config=quantization_config,
-    )
-
-
+    response_template = "<|im_start|>assistant\n"
+    instruction_template = "<|im_start|>user\n"
+    collator = DataCollatorForCompletionOnlyLM(
+                response_template=response_template,
+                instruction_template=instruction_template,
+                tokenizer=tokenizer)
 
     ########################
     # Initialize the Trainer
     ########################
     trainer = SFTTrainer(
-        model=model_args.model_name_or_path,
+        model=model,
         model_init_kwargs=model_kwargs,
         args=training_args,
         train_dataset=train_dataset,
@@ -140,6 +171,7 @@ def main():
         tokenizer=tokenizer,
         packing=training_args.packing,
         peft_config=get_peft_config(model_args),
+        neftune_noise_alpha=training_args.neftune_noise_alpha,
         dataset_kwargs={
             "add_special_tokens": False,  # We template with special tokens
             "append_concat_token": False, # No need to add additional separator token

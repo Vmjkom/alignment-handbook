@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=sft_poro_full
+#SBATCH --job-name=sft_poro_full_neft
 #SBATCH --account=project_462000319
 #SBATCH --partition=small-g
 #SBATCH --cpus-per-task=56
@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=480G
 #SBATCH --exclusive
-#SBATCH -t 24:00:00
+#SBATCH -t 12:00:00
 #SBATCH -o logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 
@@ -21,18 +21,19 @@ ln -s $SLURM_JOB_NAME-$SLURM_JOB_ID.err logs/latest.err
 echo "JOB NAME" $SLURM_JOB_NAME
 
 module use /appl/local/csc/modulefiles/ #It is adviced to add this into your .bashrc/.profile
-module load pytorch/2.1 #The latest pytorch module seems to have issues with checkpoint saving/retrieving on multi-node
+module load pytorch #The latest pytorch module seems to have issues with checkpoint saving/retrieving on multi-node
                         #https://github.com/huggingface/transformers/issues/27925 seems to be related
-source /projappl/project_462000241/villekom/instruction-tuning/Instruction-tuning-experiments/.venv/bin/activate
+source /projappl/project_462000319/villekom/alignment-handbook/.venv/bin/activate
 
 #Feel free to replace this
-export PYTHONPATH="/projappl/project_462000241/villekom/instruction-tuning/Instruction-tuning-experiments/.venv/lib/python3.10/site-packages/"
+export PYTHONPATH="/projappl/project_462000319/villekom/alignment-handbook/.venv/lib/python3.10/site-packages/"
 
 #Distributed variables
 export MASTER_PORT=$(expr 10000 + $(echo -n $SLURM_JOBID | tail -c 4))
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
 export LOCAL_RANK=$SLURM_LOCALID
+#export RANK=$SLURM_PROCID
 export WORLD_SIZE=$((SLURM_GPUS_ON_NODE*SLURM_NNODES))
 
 
@@ -52,10 +53,11 @@ export TOKENIZERS_PARALLELISM=false #Removes error involved with the FastTokeniz
 #Config for the distributed training with accelerate
 ACCELERATE_CONFIG_FILE=recipes/accelerate_configs/deepspeed_zero3.yaml
 #Arguments for training
-CONFIG_FILE=recipes/poro/sft/config_full.yaml
+CONFIG_FILE=recipes/poro/sft/config_full_neft.yaml
 
 echo "JOBNAME" $SLURM_JOB_NAME
 echo "CONFIG" $CONFIG_FILE
+pwd -P
 
 export CMD=" \
     scripts/run_sft.py $CONFIG_FILE
