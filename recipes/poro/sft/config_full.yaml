@@ -6,14 +6,14 @@ torch_dtype: bfloat16
 #chat_template: "{% for message in messages %}\n{% if message['role'] == 'user' %}\n{{ '<|user|>\n' + message['content'] + eos_token }}\n{% elif message['role'] == 'system' %}\n{{ '<|system|>\n' + message['content'] + eos_token }}\n{% elif message['role'] == 'assistant' %}\n{{ '<|assistant|>\n'  + message['content'] + eos_token }}\n{% endif %}\n{% if loop.last and add_generation_prompt %}\n{{ '<|assistant|>' }}\n{% endif %}\n{% endfor %}"
 chat_template: "{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
 dataset_mixer:
-  /scratch/project_462000319/finetuning_data/SFTTrainer_format/dolly-fi: 1.0 #15k rows
-  /scratch/project_462000319/finetuning_data/SFTTrainer_format/oasst1-fi: 1.0 #20k rows
-  /scratch/project_462000319/finetuning_data/SFTTrainer_format/lima-fi: 1.0 #800 rows
-  /scratch/project_462000319/finetuning_data/SFTTrainer_format/oasst2: 1.0
-  /scratch/project_462000319/finetuning_data/SFTTrainer_format/turku-paraphrase: 1.0
-  /scratch/project_462000319/finetuning_data/SFTTrainer_format/Capybara-fi-deepl: 1.0
-  /scratch/project_462000319/finetuning_data/SFTTrainer_format/ultrachat_16k_fi_deepl: 0.5
-  /scratch/project_462000319/finetuning_data/SFTTrainer_format/argilla/10k_prompts_ranked_mistral_large_responses: 1.0 #5098 examples
+  /scratch/project_462000319/finetuning_data/SFTTrainer_format/finnish/dolly-fi: 0.5 #15k rows
+  /scratch/project_462000319/finetuning_data/SFTTrainer_format/finnish/oasst1-fi: 1.0 #20k rows
+  /scratch/project_462000319/finetuning_data/SFTTrainer_format/finnish/lima-fi: 1.0 #800 rows
+  /scratch/project_462000319/finetuning_data/SFTTrainer_format/english/oasst2: 1.0 #5k rows
+  /scratch/project_462000319/finetuning_data/SFTTrainer_format/english/argilla/10k_prompts_ranked_mistral_large_responses: 1.0 #5k rows
+  /scratch/project_462000319/finetuning_data/SFTTrainer_format/english/glaive-code-assistant-v2: 0.5
+  /scratch/project_462000319/finetuning_data/SFTTrainer_format/english/orca-math-word-problems-200k: 0.5
+  /scratch/project_462000319/finetuning_data/SFTTrainer_format/finnish/turku-paraphrase: 1.0 #2k rows
 dataset_splits:
 - train
 - test
@@ -22,32 +22,30 @@ preprocessing_num_workers: 7
 # SFT trainer config
 bf16: true
 do_eval: true
-gradient_accumulation_steps: 2
+gradient_accumulation_steps: 1
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
-learning_rate: 1.0e-5
+learning_rate: 2.0e-05
 log_level: info
 log_on_each_node: false
-logging_steps: 10
+logging_steps: 5
 evaluation_strategy: steps
-eval_steps: 500
+eval_steps: 50
 logging_strategy: steps
-lr_scheduler_type: constant_with_warmup
-max_grad_norm: 2.0
+lr_scheduler_type: cosine
 max_seq_length: 2048
 max_steps: -1
 num_train_epochs: 3
-output_dir: /scratch/project_462000319/villekom/models/alignment_handbook/sft/poro_mixed_full
+output_dir: /scratch/project_462000319/villekom/models/alignment_handbook/sft/poro_full_packing
 overwrite_output_dir: false
 per_device_eval_batch_size: 4
 per_device_train_batch_size: 2
 push_to_hub: false
 report_to:
 - tensorboard
-save_strategy: "steps"
-save_steps: 100
-save_total_limit: 1
+save_strategy: "epoch"
+save_total_limit: 3
 seed: 42
 warmup_ratio: 0.1
 packing: false

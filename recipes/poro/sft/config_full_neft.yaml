@@ -31,7 +31,7 @@ log_level: info
 log_on_each_node: false
 logging_steps: 5
 evaluation_strategy: steps
-eval_steps: 50
+eval_steps: 300
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_seq_length: 2048

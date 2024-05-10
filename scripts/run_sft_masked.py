@@ -156,6 +156,7 @@ def main():
     # Initialize the Trainer
     ########################
     trainer = SFTTrainer(
+        data_collator=collator,
         model=model,
         model_init_kwargs=model_kwargs,
         args=training_args,

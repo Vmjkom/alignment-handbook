@@ -31,21 +31,22 @@ log_level: info
 log_on_each_node: false
 logging_steps: 5
 evaluation_strategy: steps
-eval_steps: 500
+eval_steps: 1000
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_seq_length: 2048
 max_steps: -1
 num_train_epochs: 3
-output_dir: /scratch/project_462000319/villekom/models/alignment_handbook/sft/poro_full_packing
+output_dir: /scratch/project_462000319/villekom/models/alignment_handbook/sft/poro_full_masked
 overwrite_output_dir: false
 per_device_eval_batch_size: 4
 per_device_train_batch_size: 2
 push_to_hub: false
 report_to:
 - tensorboard
-save_strategy: "epoch"
-save_total_limit: 3
+save_strategy: "steps"
+save_steps: 500
+save_total_limit: 2
 seed: 42
 warmup_ratio: 0.1
-packing: true
+packing: false

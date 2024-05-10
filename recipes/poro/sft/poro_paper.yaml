@@ -1,0 +1,44 @@
+# Model arguments
+model_name_or_path: /scratch/project_462000319/zosaelai2/models/Poro-34b-Chat
+torch_dtype: bfloat16
+
+# Data training arguments
+chat_template: "{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
+dataset_mixer:
+  /scratch/project_462000319/finetuning_data/SFTTrainer_format/english/oasst2: 1.0 #5k rows
+  /scratch/project_462000319/finetuning_data/SFTTrainer_format/finnish/oasst2-fi-deepl: 1.0
+dataset_splits:
+- train
+- test
+preprocessing_num_workers: 7
+
+# SFT trainer config
+bf16: true
+do_eval: true
+gradient_accumulation_steps: 1
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+learning_rate: 2.0e-05
+log_level: info
+log_on_each_node: false
+logging_steps: 5
+evaluation_strategy: steps
+eval_steps: 50
+logging_strategy: steps
+lr_scheduler_type: cosine
+max_seq_length: 2048
+max_steps: -1
+num_train_epochs: 3
+output_dir: /scratch/project_462000319/villekom/models/alignment_handbook/sft/debug
+overwrite_output_dir: true
+per_device_eval_batch_size: 6
+per_device_train_batch_size: 4
+push_to_hub: false
+report_to:
+- tensorboard
+save_strategy: "epoch"
+save_total_limit: 3
+seed: 42
+warmup_ratio: 0.1
+packing: false

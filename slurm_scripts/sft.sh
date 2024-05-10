@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=sft_poro_full_neft
+#SBATCH --job-name=sft_poro_full_masked
 #SBATCH --account=project_462000319
 #SBATCH --partition=small-g
 #SBATCH --cpus-per-task=56
@@ -8,7 +8,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=480G
 #SBATCH --exclusive
-#SBATCH -t 12:00:00
+#SBATCH -t 28:00:00
 #SBATCH -o logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 
@@ -27,6 +27,8 @@ source /projappl/project_462000319/villekom/alignment-handbook/.venv/bin/activat
 
 #Feel free to replace this
 export PYTHONPATH="/projappl/project_462000319/villekom/alignment-handbook/.venv/lib/python3.10/site-packages/"
+pip show transformers
+
 
 #Distributed variables
 export MASTER_PORT=$(expr 10000 + $(echo -n $SLURM_JOBID | tail -c 4))
@@ -53,14 +55,14 @@ export TOKENIZERS_PARALLELISM=false #Removes error involved with the FastTokeniz
 #Config for the distributed training with accelerate
 ACCELERATE_CONFIG_FILE=recipes/accelerate_configs/deepspeed_zero3.yaml
 #Arguments for training
-CONFIG_FILE=recipes/poro/sft/config_full_neft.yaml
+CONFIG_FILE=recipes/poro/sft/config_full_masked.yaml
 
 echo "JOBNAME" $SLURM_JOB_NAME
 echo "CONFIG" $CONFIG_FILE
 pwd -P
 
 export CMD=" \
-    scripts/run_sft.py $CONFIG_FILE
+    scripts/run_sft_masked.py $CONFIG_FILE
     "
 
 
