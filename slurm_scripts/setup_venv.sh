@@ -16,7 +16,7 @@ mkdir -p logs
 # Load modules
 module load LUMI #Loads correct compilers for the accelerators, propably not needed
 module use /appl/local/csc/modulefiles/ #Add the module path needed for csc modules in Lumi
-module load pytorch/2.1 #The latest pytorch module has issues with venv as of 25.3.2024
+module load pytorch
 
 
 #Create venv
@@ -26,5 +26,4 @@ python -m venv .venv --system-site-packages
 source .venv/bin/activate
 
 # Install pip packages
-python -m pip install peft
-python -m pip install trl
+pip install transformers==4.39.3 #Latest version has some backwards compability issues with previous versions on checkpointing saving
